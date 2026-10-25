@@ -1,0 +1,23 @@
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.env
+*.key
+# Raw data: commit only if the licence allows redistribution (OpenAQ sources vary).
+data/raw/**
+!data/raw/README.md
+data/interim/
+data/processed/
+
+*_synthetic.csv
+!data/raw/pm25/
+!data/raw/pm25/.gitkeep
+
+# Generated outputs are rebuilt from the notebooks
+outputs/audit_forecast/daily_all.csv
+outputs/audit_network/wide_daily_eligible.csv
+
+# macOS
+.DS_Store
+*.egg-info/

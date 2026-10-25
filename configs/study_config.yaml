@@ -1,0 +1,101 @@
+# Study design for the Ulaanbaatar PM2.5 project. Two parts, two datasets:
+#   forecast  - neural-network next-day forecast at ONE long-running station (US Embassy, OpenAQ 8160)
+#   network   - GA chooses which k of the new official stations to keep (agaar.gov.mn, winter 2025/26)
+# Every date below is LOCKED once the audits are accepted. Never edit a test period
+# after looking at test results.
+
+timezone: Asia/Ulaanbaatar     # UTC+08:00 now; Mongolia used DST in 2015-2016 (tz database handles it)
+seed: 42
+season_start_month: 7          # season year runs July -> June, so each split holds whole winters
+structural_break: "2019-05-15" # raw-coal ban in Ulaanbaatar
+smog_months:    [11, 12, 1, 2]
+heating_months: [10, 11, 12, 1, 2, 3, 4]
+
+# High-pollution event thresholds (daily mean PM2.5, µg/m³). Each audit picks the lowest
+# official line whose TRAINING exceedance rate is <= max_base_rate; if none qualifies it
+# uses the training-period percentile, labelled as study-defined.
+thresholds:
+  candidates:
+    mns_4585_2025: 37.5    # revised national 24-h standard
+    mns_4585_2016: 50.0    # national 24-h standard in force for most of the study window
+    who_it1_2021: 75.0     # WHO 2021 interim target 1
+  max_base_rate: 0.60
+  fallback_percentile: 75
+
+quality:
+  min_hours_per_day: 18          # a daily mean from hourly data needs >= 18 of 24 values
+  plausible_max_hourly: 1500     # flagged, not deleted
+  min_valid_frac: 0.75           # station coverage rule used by both audits
+
+# ---------------------------------------------------------------------------
+# Part 1: forecasting (OpenAQ archive, hourly)
+# ---------------------------------------------------------------------------
+forecast:
+  input:
+    raw_glob: data/raw/pm25/**/*.csv*      # .csv or .csv.gz, searched recursively
+    location_ids: [8160]                    # US Embassy (AirNow). Empty list = keep every location
+    columns:                                # OpenAQ archive layout; edit if your header differs
+      station_id: location_id
+      station_name: location
+      datetime: datetime
+      value: value
+      parameter: parameter
+      units: units
+      lat: lat
+      lon: lon
+    parameter_filter: pm25
+    expected_units: "µg/m³"
+    datetime_is_utc: false                  # true if timestamps carry no offset and are UTC
+  periods:
+    core: {start: "2019-07-01", end: "2025-03-31"}         # station 8160 ends March 2025
+    pre_ban_sensitivity: {start: "2016-11-09", end: "2019-06-30"}  # H5 only, never in the test
+    split:
+      train: {start: "2019-07-01", end: "2023-06-30"}   # winters 19/20, 20/21, 21/22, 22/23
+      val:   {start: "2023-07-01", end: "2024-06-30"}   # winter 23/24
+      test:  {start: "2024-07-01", end: "2025-03-31"}   # winter 24/25 (sealed until 23 Nov)
+    rolling_origin_folds:                               # model selection only
+      - {train_end: "2021-06-30", val_start: "2021-07-01", val_end: "2022-06-30"}
+      - {train_end: "2022-06-30", val_start: "2022-07-01", val_end: "2023-06-30"}
+      - {train_end: "2023-06-30", val_start: "2023-07-01", val_end: "2024-06-30"}
+    covid_flag: {start: "2020-03-01", end: "2021-06-30"}  # flagged, not removed
+  # Usable station: >= this many valid smog-season days across ALL training winters
+  # (240 = two full Nov-Feb winters' worth; partial winters count), plus >= min_valid_frac
+  # coverage in the validation and test winters.
+  min_train_smog_days: 240
+  target: next_day_mean_pm25
+  history_days: 14
+
+# ---------------------------------------------------------------------------
+# Part 2: network design (agaar.gov.mn via the data-mn archive, daily)
+# ---------------------------------------------------------------------------
+network:
+  input:
+    daily_glob: data/raw/agaar/daily/agaar-daily-*.csv
+    stations_file: data/raw/agaar/agaar-stations.csv
+    region: Ulaanbaatar                     # matched against aimag_en in the stations file
+  cleaning:                                 # same rules as data-mn's own build, applied here
+    above_pm10_ratio: 1.1                   # PM2.5 > 1.1 x PM10 and > 50 -> dropped
+    above_pm10_min: 50
+    spike_ratio: 5                          # > 5 x that day's cross-station median and > 150 -> dropped
+    spike_min: 150
+    flat_days: 5                            # same value 5+ days in a row -> dropped
+  period: {start: "2025-10-01", end: "2026-03-31"}
+  split:
+    train: {start: "2025-10-01", end: "2025-12-31"}
+    val:   {start: "2026-01-01", end: "2026-01-31"}
+    test:  {start: "2026-02-01", end: "2026-03-31"}   # sealed until 23 Nov
+  fitness:
+    ridge_alpha: 1.0
+    log_transform: true          # fit on log(1 + PM2.5), score in µg/m³
+    event_weight: 3.0            # event days count 3x in the weighted RMSE
+    lambda_miss: 0.5             # weight on the missed-alert-day rate
+  k_min: 3
+  exhaustive_max_subsets: 20000  # exhaustive search whenever C(N, k) is at most this
+  random_draws: 1000
+  ga:
+    population: 60
+    generations: 100
+    tournament: 3
+    elite: 2
+    mutation_rate: 0.3
+    seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]

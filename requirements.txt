@@ -1,0 +1,10 @@
+pandas>=2.2
+numpy>=1.26
+matplotlib>=3.8
+pyyaml>=6.0
+tabulate>=0.9        # markdown tables in the audit reports
+scikit-learn>=1.4    # benchmarks from week 2
+torch>=2.2           # MLP and LSTM/GRU from week 2 (Apple-silicon builds install automatically)
+jupyterlab>=4.0      # notebooks
+ipykernel>=6.29      # lets VS Code use .venv as the notebook kernel
+pytest>=8.0

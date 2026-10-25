@@ -1,0 +1,2 @@
+station_id,good_train_winters,train_valid_smog_days,val_cov,test_cov_min,eligible
+8160,2,283,0.893,0.925,True
