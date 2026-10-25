@@ -96,7 +96,7 @@ def plot_coverage(cov: pd.DataFrame, thr: float, ax=None):
             v = cov.values[i, j]
             ax.text(j, i, f"{v:.0%}", ha="center", va="center", fontsize=7, color="white" if v < thr else "black")
     ax.set_title("Valid smog-season days (Nov–Feb) per station")
-    ax.figure.colorbar(im, ax=ax, fraction=0.03)
+    ax.figure.colorbar(im, ax=ax, fraction=0.03, aspect=max(2, 10 * cov.shape[0]))
     ax.figure.tight_layout()
     return ax
 

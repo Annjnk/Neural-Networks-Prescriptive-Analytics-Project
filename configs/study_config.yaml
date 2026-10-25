@@ -53,10 +53,9 @@ forecast:
       train: {start: "2019-07-01", end: "2023-06-30"}   # winters 19/20, 20/21, 21/22, 22/23
       val:   {start: "2023-07-01", end: "2024-06-30"}   # winter 23/24
       test:  {start: "2024-07-01", end: "2025-03-31"}   # winter 24/25 (sealed until 23 Nov)
-    rolling_origin_folds:                               # model selection only
-      - {train_end: "2021-06-30", val_start: "2021-07-01", val_end: "2022-06-30"}
-      - {train_end: "2022-06-30", val_start: "2022-07-01", val_end: "2023-06-30"}
-      - {train_end: "2023-06-30", val_start: "2023-07-01", val_end: "2024-06-30"}
+    rolling_origin_folds:                               # 22/23 has no data (AirNow -999 gap)
+      - {train_end: "2021-06-30", val_start: "2021-07-01", val_end: "2022-06-30"}   # train 19/20-20/21, validate 21/22
+      - {train_end: "2023-06-30", val_start: "2023-07-01", val_end: "2024-06-30"}   # train 19/20-22/23, validate 23/24
     covid_flag: {start: "2020-03-01", end: "2021-06-30"}  # flagged, not removed
   # Usable station: >= this many valid smog-season days across ALL training winters
   # (240 = two full Nov-Feb winters' worth; partial winters count), plus >= min_valid_frac
@@ -99,3 +98,23 @@ network:
     elite: 2
     mutation_rate: 0.3
     seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+# ---------------------------------------------------------------------------
+# Weather (Open-Meteo historical API, ERA5 reanalysis) and forecast features
+# ---------------------------------------------------------------------------
+weather:
+  url: https://archive-api.open-meteo.com/v1/archive
+  latitude: 47.92
+  longitude: 106.92
+  start: "2016-07-01"
+  end: "2025-03-31"
+  hourly: [temperature_2m, relative_humidity_2m, surface_pressure, wind_speed_10m,
+           wind_direction_10m, boundary_layer_height]
+  optional: [boundary_layer_height]       # dropped automatically if the API does not offer it
+  out_file: data/raw/weather/open_meteo_ub_hourly.csv
+features:
+  pm25_lags: [1, 2, 3, 6]        # lag0 (day D itself) is always included
+  rolling: [3, 7]
+  evening_hours: [18, 23]
+  min_evening_hours: 4
+  include_future_weather: false  # true ONLY for the labelled upper-bound experiment
