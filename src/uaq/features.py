@@ -74,8 +74,10 @@ def build(daily: pd.DataFrame, hourly: pd.DataFrame, cfg: dict, weather_daily: p
     return f.reset_index()
 
 
-def feature_columns(frame: pd.DataFrame, weather: bool = True, future: bool = False) -> list[str]:
-    cols = [c for c in frame.columns if c not in BOOKKEEPING]
+def feature_columns(frame: pd.DataFrame, weather: bool = True, future: bool = False,
+                    drop: list[str] | tuple = ()) -> list[str]:
+    """Model inputs: every non-bookkeeping column, minus `drop` (pass cfg["features"]["drop_columns"])."""
+    cols = [c for c in frame.columns if c not in BOOKKEEPING and c not in set(drop)]
     if not weather:
         cols = [c for c in cols if not c.startswith("w_")]
     if not future:

@@ -112,9 +112,14 @@ weather:
            wind_direction_10m, boundary_layer_height]
   optional: [boundary_layer_height]       # dropped automatically if the API does not offer it
   out_file: data/raw/weather/open_meteo_ub_hourly.csv
+  models: era5                 # one consistent reanalysis for all splits; do not let Open-Meteo blend models
 features:
   pm25_lags: [1, 2, 3, 6]        # lag0 (day D itself) is always included
   rolling: [3, 7]
   evening_hours: [18, 23]
   min_evening_hours: 4
   include_future_weather: false  # true ONLY for the labelled upper-bound experiment
+  # Fixed before any model is trained (notebook 04, section 1): BLH features are kept only if
+  # >= 95% of smog-season days have them in train, val AND test. ERA5 via Open-Meteo has no BLH
+  # for 2024-01-01..2024-06-30 (half the validation winter), so they are dropped.
+  drop_columns: [w_blh_mean, w_blh_night, w_blh_night_change]

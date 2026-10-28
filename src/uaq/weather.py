@@ -76,6 +76,8 @@ def download(cfg: dict, root: Path = ROOT, force: bool = False, fetch=_request) 
             params = {"latitude": w["latitude"], "longitude": w["longitude"],
                       "start_date": lo.strftime("%Y-%m-%d"), "end_date": hi.strftime("%Y-%m-%d"),
                       "hourly": ",".join(variables), "timezone": "GMT", "wind_speed_unit": "ms"}
+            if w.get("models"):
+                params["models"] = w["models"]
             try:
                 js = fetch(w["url"], params)
                 break
@@ -98,7 +100,7 @@ def download(cfg: dict, root: Path = ROOT, force: bool = False, fetch=_request) 
             "hourly_units": js.get("hourly_units"), "variables": variables,
             "requested_latitude": w["latitude"], "requested_longitude": w["longitude"],
             "downloaded_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "source": w["url"], "attribution": ATTRIBUTION}
+            "models": w.get("models"), "source": w["url"], "attribution": ATTRIBUTION}
     out.with_name(out.stem + ".meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
     return out
 

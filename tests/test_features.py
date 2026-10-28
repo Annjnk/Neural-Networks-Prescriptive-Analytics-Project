@@ -121,3 +121,11 @@ def test_target_is_next_day_and_split_uses_target_date():
     row = f.loc[i]
     assert row["target_date"] == pd.Timestamp("2023-07-01") and row["split"] == "val"
     assert row["y"] == f.loc[i + 1, "pm_lag0"]
+
+
+def test_feature_columns_respects_drop_list():
+    pm = _pm_hourly("2020-11-01", "2020-11-30")
+    f = _features(pm, _weather_hourly("2020-10-31 16:00", 32 * 24))
+    drop = ["w_blh_mean", "w_blh_night", "w_blh_night_change"]
+    cols = features.feature_columns(f, drop=drop)
+    assert not set(drop) & set(cols) and set(drop) <= set(features.feature_columns(f))
