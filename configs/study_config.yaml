@@ -63,6 +63,22 @@ forecast:
   min_train_smog_days: 240
   target: next_day_mean_pm25
   history_days: 14
+  models:
+    fit_on: all_months             # fit on every complete training row; score on smog season only
+    target_transform: log1p
+    extreme_quantile: 0.90         # "worst days" = observed y above the 90th percentile of the scored rows
+    seeds: [0, 1, 2, 3, 4]         # neural nets: mean of 5 seeds = the model
+    ridge_alphas: [0.1, 1, 10, 100]
+    hgb_grid: {max_depth: [3, 5], learning_rate: [0.05, 0.1], max_iter: [200]}
+    mlp_grid:
+      hidden: [[32], [64, 32]]
+      dropout: [0.0, 0.2]
+      weight_decay: [0.0001]
+      lr: [0.001]
+      max_epochs: 300
+      patience: 20
+      batch_size: 64
+      early_stop_tail: 0.15        # last 15% of the FIT rows (chronological) for early stopping
 
 # ---------------------------------------------------------------------------
 # Part 2: network design (agaar.gov.mn via the data-mn archive, daily)
@@ -122,4 +138,16 @@ features:
   # Fixed before any model is trained (notebook 04, section 1): BLH features are kept only if
   # >= 95% of smog-season days have them in train, val AND test. ERA5 via Open-Meteo has no BLH
   # for 2024-01-01..2024-06-30 (half the validation winter), so they are dropped.
-  drop_columns: [w_blh_mean, w_blh_night, w_blh_night_change]
+  # Feature missingness rule (fixed before any model is trained; uaq.models.missingness_rule):
+  # base = training rows (core.start <= target_date <= train end, all months) where y AND pm_lag0
+  # are both present; drop any feature missing on more than max_missing_share of that base.
+  # pm_lag0 is never dropped. On station 8160 this drops pm_lag1/2/3/6 (10.1%-18.3% missing).
+  max_missing_share: 0.10
+  drop_columns:
+    - w_blh_mean           # BLH rule
+    - w_blh_night          # BLH rule
+    - w_blh_night_change   # BLH rule
+    - pm_lag1              # missingness rule (10.1%)
+    - pm_lag2              # missingness rule (14.1%)
+    - pm_lag3              # missingness rule (15.6%)
+    - pm_lag6              # missingness rule (18.3%)

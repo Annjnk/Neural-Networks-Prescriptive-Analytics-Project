@@ -1,0 +1,129 @@
+{
+  "run_date": "2026-11-03",
+  "protocol": "fit on all training months from core.start; score smog-season targets; select on mean MAE of 2 rolling folds",
+  "threshold": {
+    "name": "train_p75",
+    "ug_m3": 170.8,
+    "why": "Every official threshold is exceeded too often in training (mns_4585_2025 89%, mns_4585_2016 81%, who_it1_2021 66%), so a study-defined training percentile is used. Report the official rates as context."
+  },
+  "chosen": {
+    "ridge (weather)": {
+      "config": "ridge alpha=100",
+      "mean_mae": 57.020894358510276
+    },
+    "ridge (no weather)": {
+      "config": "ridge alpha=100",
+      "mean_mae": 65.47183336017672
+    },
+    "hgb (weather)": {
+      "config": "hgb depth=5 lr=0.05 iter=200",
+      "mean_mae": 43.823131043635904
+    },
+    "hgb (no weather)": {
+      "config": "hgb depth=5 lr=0.05 iter=200",
+      "mean_mae": 47.3247117571059
+    },
+    "mlp (weather)": {
+      "config": "mlp hidden=[64, 32] dropout=0.2 wd=0.0001 lr=0.001",
+      "mean_mae": 49.086875361531824
+    },
+    "mlp (no weather)": {
+      "config": "mlp hidden=[64, 32] dropout=0.2 wd=0.0001 lr=0.001",
+      "mean_mae": 55.58882335713707
+    }
+  },
+  "baselines_mean_mae": {
+    "persistence": 53.54309884473102,
+    "climatology": 54.8575378790039
+  },
+  "features": {
+    "with_weather": [
+      "pm_lag0",
+      "pm_mean3d",
+      "pm_mean7d",
+      "pm_std7d",
+      "pm_evening",
+      "pm_last_hour",
+      "pm_max_hourly",
+      "doy_sin",
+      "doy_cos",
+      "dow_sin",
+      "dow_cos",
+      "weekend",
+      "w_temp_mean",
+      "w_temp_min",
+      "w_temp_range",
+      "w_rh_mean",
+      "w_pressure_mean",
+      "w_wind_mean",
+      "w_calm_hours",
+      "w_wind_u",
+      "w_wind_v",
+      "w_temp_mean_change",
+      "w_pressure_mean_change"
+    ],
+    "without_weather": [
+      "pm_lag0",
+      "pm_mean3d",
+      "pm_mean7d",
+      "pm_std7d",
+      "pm_evening",
+      "pm_last_hour",
+      "pm_max_hourly",
+      "doy_sin",
+      "doy_cos",
+      "dow_sin",
+      "dow_cos",
+      "weekend"
+    ]
+  },
+  "dropped_features": {
+    "config_drop_columns": [
+      "w_blh_mean",
+      "w_blh_night",
+      "w_blh_night_change",
+      "pm_lag1",
+      "pm_lag2",
+      "pm_lag3",
+      "pm_lag6"
+    ],
+    "by_missingness_rule": [
+      "pm_lag6",
+      "pm_lag3",
+      "pm_lag2",
+      "pm_lag1"
+    ],
+    "missing_share_on_rule_base": {
+      "pm_lag6": 0.1828,
+      "pm_lag3": 0.1561,
+      "pm_lag2": 0.1406,
+      "pm_lag1": 0.1013,
+      "pm_mean7d": 0.0872,
+      "pm_std7d": 0.0872,
+      "pm_mean3d": 0.0563,
+      "pm_evening": 0.0155,
+      "pm_last_hour": 0.0098,
+      "w_blh_mean": 0.0,
+      "w_calm_hours": 0.0,
+      "w_wind_u": 0.0,
+      "w_wind_v": 0.0,
+      "pm_lag0": 0.0,
+      "w_blh_night": 0.0,
+      "w_temp_mean_change": 0.0,
+      "w_pressure_mean_change": 0.0,
+      "w_pressure_mean": 0.0,
+      "w_wind_mean": 0.0,
+      "weekend": 0.0,
+      "w_rh_mean": 0.0,
+      "w_temp_range": 0.0,
+      "w_temp_min": 0.0,
+      "w_temp_mean": 0.0,
+      "dow_cos": 0.0,
+      "dow_sin": 0.0,
+      "doy_cos": 0.0,
+      "doy_sin": 0.0,
+      "pm_max_hourly": 0.0,
+      "w_blh_night_change": 0.0
+    }
+  }
+}
