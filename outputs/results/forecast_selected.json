@@ -9,11 +9,11 @@
   "chosen": {
     "ridge (weather)": {
       "config": "ridge alpha=100",
-      "mean_mae": 57.020894358510276
+      "mean_mae": 44.502214624831836
     },
     "ridge (no weather)": {
-      "config": "ridge alpha=100",
-      "mean_mae": 65.47183336017672
+      "config": "ridge alpha=10",
+      "mean_mae": 46.72175839752671
     },
     "hgb (weather)": {
       "config": "hgb depth=5 lr=0.05 iter=200",
@@ -24,12 +24,12 @@
       "mean_mae": 47.3247117571059
     },
     "mlp (weather)": {
-      "config": "mlp hidden=[64, 32] dropout=0.2 wd=0.0001 lr=0.001",
-      "mean_mae": 49.086875361531824
+      "config": "mlp hidden=[32] dropout=0 wd=0.0001 lr=0.001",
+      "mean_mae": 44.23320621595653
     },
     "mlp (no weather)": {
-      "config": "mlp hidden=[64, 32] dropout=0.2 wd=0.0001 lr=0.001",
-      "mean_mae": 55.58882335713707
+      "config": "mlp hidden=[32] dropout=0 wd=0.0001 lr=0.001",
+      "mean_mae": 46.834693261737414
     }
   },
   "baselines_mean_mae": {

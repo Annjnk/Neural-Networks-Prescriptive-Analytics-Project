@@ -61,7 +61,8 @@ def test_ridge_scaler_is_fitted_on_fit_rows_only():
     poisoned.loc[score_idx, COLS] = 0.0
     again = next(models.run_folds(poisoned, COLS, lambda: models.RidgeModel(1.0), CFG))
     np.testing.assert_array_equal(base["model"].scaler_.mean_, again["model"].scaler_.mean_)
-    np.testing.assert_allclose(base["model"].scaler_.mean_, base["fit_df"][COLS].mean().values)
+    expected = models._inputs(base["fit_df"][COLS], base["model"].log_prefix).mean(axis=0)   # fit rows, PM inputs log1p'd
+    np.testing.assert_allclose(base["model"].scaler_.mean_, expected)
 
 
 def test_mlp_same_seed_is_reproducible_and_seeds_differ():
@@ -147,3 +148,19 @@ def test_fit_final_fits_only_core_to_validation_end_and_predicts_test():
     out = models.fit_final_and_predict(_frame(), COLS, lambda: Spy(1.0), CFG)
     assert seen["index"].min() >= CORE and seen["index"].max() <= VAL_END
     assert (out["target_date"] >= TEST).all() and "y" not in out.columns
+
+
+def test_ridge_and_mlp_do_not_blow_up_beyond_the_training_range():
+    rng = np.random.default_rng(0)
+    n = 400
+    x = rng.uniform(10, 300, n)
+    X = pd.DataFrame({"pm_lag0": x, "pm_mean3d": np.clip(x + rng.normal(0, 15, n), 10, 300),
+                      "w_temp_min": rng.normal(-20, 5, n)}, index=pd.date_range("2020-01-01", periods=n))
+    y = np.clip(0.9 * x + rng.normal(0, 20, n), 10, 300)
+    X2 = X.copy()
+    X2[["pm_lag0", "pm_mean3d"]] = 2 * X[["pm_lag0", "pm_mean3d"]].max().values
+    prefix = CFG["forecast"]["models"]["log_feature_prefix"]
+    mlp = dict(FAST_MLP, max_epochs=60, patience=10)
+    for model in (models.RidgeModel(1.0, log_prefix=prefix), models.MLPModel(seed=0, log_prefix=prefix, **mlp)):
+        p = model.fit(X, y).predict(X2)
+        assert np.isfinite(p).all() and p.max() < 3 * y.max(), type(model).__name__

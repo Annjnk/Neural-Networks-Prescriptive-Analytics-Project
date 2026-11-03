@@ -66,6 +66,10 @@ forecast:
   models:
     fit_on: all_months             # fit on every complete training row; score on smog season only
     target_transform: log1p
+    # Ridge and MLP apply log1p(clip(x, 0)) to every PM2.5-valued input (columns starting with this
+    # prefix). With a log1p target, raw inputs make predictions grow exponentially with the inputs
+    # (ridge predicted 915 µg/m³ on 2021-12-28 against 174 observed). HGB and the baselines are unchanged.
+    log_feature_prefix: "pm_"
     extreme_quantile: 0.90         # "worst days" = observed y above the 90th percentile of the scored rows
     seeds: [0, 1, 2, 3, 4]         # neural nets: mean of 5 seeds = the model
     ridge_alphas: [0.1, 1, 10, 100]

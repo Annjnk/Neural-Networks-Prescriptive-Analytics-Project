@@ -74,6 +74,16 @@ def _X(df: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------- models
+def _inputs(X: pd.DataFrame, log_prefix: str | None) -> np.ndarray:
+    """Feature matrix with log1p(clip(x, 0)) applied to PM2.5-valued columns (names starting with
+    `log_prefix`). With log1p targets this keeps predictions linear, not exponential, in the inputs."""
+    A = X.to_numpy(float).copy()
+    if log_prefix:
+        idx = [i for i, c in enumerate(X.columns) if str(c).startswith(log_prefix)]
+        A[:, idx] = np.log1p(np.clip(A[:, idx], 0, None))
+    return A
+
+
 class Persistence:
     """Tomorrow = today (pm_lag0)."""
     def fit(self, X, y):
@@ -102,17 +112,18 @@ class Climatology:
 
 
 class RidgeModel:
-    """StandardScaler + Ridge on log1p(y)."""
-    def __init__(self, alpha: float = 1.0):
-        self.alpha = alpha
+    """log1p on PM2.5 inputs, StandardScaler + Ridge on log1p(y)."""
+    def __init__(self, alpha: float = 1.0, log_prefix: str | None = "pm_"):
+        self.alpha, self.log_prefix = alpha, log_prefix
 
     def fit(self, X, y):
-        self.scaler_ = StandardScaler().fit(X.to_numpy(float))
-        self.model_ = Ridge(alpha=self.alpha).fit(self.scaler_.transform(X.to_numpy(float)), np.log1p(y))
+        A = _inputs(X, self.log_prefix)
+        self.scaler_ = StandardScaler().fit(A)
+        self.model_ = Ridge(alpha=self.alpha).fit(self.scaler_.transform(A), np.log1p(y))
         return self
 
     def predict(self, X):
-        z = self.model_.predict(self.scaler_.transform(X.to_numpy(float)))
+        z = self.model_.predict(self.scaler_.transform(_inputs(X, self.log_prefix)))
         return np.clip(np.expm1(z), 0, None)
 
 
@@ -130,16 +141,16 @@ class HGBModel:
 
 
 class MLPModel:
-    """Linear-ReLU-Dropout stack + Linear(1) on standardised log1p(y), CPU.
+    """log1p on PM2.5 inputs; Linear-ReLU-Dropout stack + Linear(1) on standardised log1p(y), CPU.
 
     Early stopping uses the chronologically last `early_stop_tail` of the FIT rows; the best
     weights are restored. history_ holds per-epoch train and early-stop MSE (standardised scale).
     """
     def __init__(self, hidden=(32,), dropout=0.0, weight_decay=1e-4, lr=1e-3, max_epochs=300,
-                 patience=20, batch_size=64, early_stop_tail=0.15, seed=0):
+                 patience=20, batch_size=64, early_stop_tail=0.15, seed=0, log_prefix="pm_"):
         self.hidden, self.dropout, self.weight_decay, self.lr = list(hidden), dropout, weight_decay, lr
         self.max_epochs, self.patience, self.batch_size = max_epochs, patience, batch_size
-        self.early_stop_tail, self.seed = early_stop_tail, seed
+        self.early_stop_tail, self.seed, self.log_prefix = early_stop_tail, seed, log_prefix
 
     def _net(self, n_in):
         layers, d = [], n_in
@@ -151,7 +162,7 @@ class MLPModel:
     def fit(self, X, y):
         torch.manual_seed(self.seed); np.random.seed(self.seed)
         order = np.argsort(X.index.values, kind="stable")              # chronological
-        Xa, ya = X.to_numpy(float)[order], np.log1p(np.asarray(y, float))[order]
+        Xa, ya = _inputs(X, self.log_prefix)[order], np.log1p(np.asarray(y, float))[order]
         self.scaler_ = StandardScaler().fit(Xa)
         self.y_mean_, self.y_std_ = float(ya.mean()), float(ya.std()) or 1.0
         Xt = torch.tensor(self.scaler_.transform(Xa), dtype=torch.float32)
@@ -185,7 +196,7 @@ class MLPModel:
 
     def predict(self, X):
         with torch.no_grad():
-            z = self.net_(torch.tensor(self.scaler_.transform(X.to_numpy(float)), dtype=torch.float32))
+            z = self.net_(torch.tensor(self.scaler_.transform(_inputs(X, self.log_prefix)), dtype=torch.float32))
         return np.clip(np.expm1(z.numpy().ravel() * self.y_std_ + self.y_mean_), 0, None)
 
 
@@ -208,8 +219,9 @@ class SeedEnsemble:
 # ---------------------------------------------------------------------- candidates
 def ridge_candidates(cfg: dict) -> dict:
     """Simplest first (largest alpha), so ties go to the simpler model."""
-    return {f"ridge alpha={a:g}": (lambda a=a: RidgeModel(a))
-            for a in sorted(cfg["forecast"]["models"]["ridge_alphas"], reverse=True)}
+    m = cfg["forecast"]["models"]
+    return {f"ridge alpha={a:g}": (lambda a=a: RidgeModel(a, log_prefix=m["log_feature_prefix"]))
+            for a in sorted(m["ridge_alphas"], reverse=True)}
 
 
 def hgb_candidates(cfg: dict) -> dict:
@@ -231,7 +243,7 @@ def mlp_candidates(cfg: dict) -> dict:
     for h, dr, wd, lr in itertools.product(sorted(g["hidden"], key=lambda h: (len(h), sum(h))),
                                            sorted(g["dropout"], reverse=True),
                                            g["weight_decay"], g["lr"]):
-        params = dict(hidden=list(h), dropout=dr, weight_decay=wd, lr=lr, **fixed)
+        params = dict(hidden=list(h), dropout=dr, weight_decay=wd, lr=lr, log_prefix=m["log_feature_prefix"], **fixed)
         name = f"mlp hidden={list(h)} dropout={dr:g} wd={wd:g} lr={lr:g}"
         out[name] = (lambda params=params: SeedEnsemble(lambda s: MLPModel(seed=s, **params), m["seeds"]))
     return out
