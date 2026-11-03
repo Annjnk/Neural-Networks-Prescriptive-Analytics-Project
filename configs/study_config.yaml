@@ -48,7 +48,7 @@ forecast:
     datetime_is_utc: false                  # true if timestamps carry no offset and are UTC
   periods:
     core: {start: "2019-07-01", end: "2025-03-31"}         # station 8160 ends March 2025
-    pre_ban_sensitivity: {start: "2016-11-09", end: "2019-06-30"}  # H5 only, never in the test
+    pre_ban_sensitivity: {start: "2016-11-09", end: "2019-06-30"}  # H6 (weather-adjusted coal-ban estimate, notebook 07) only, never in the test
     split:
       train: {start: "2019-07-01", end: "2023-06-30"}   # winters 19/20, 20/21, 21/22, 22/23
       val:   {start: "2023-07-01", end: "2024-06-30"}   # winter 23/24

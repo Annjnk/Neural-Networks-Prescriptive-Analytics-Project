@@ -10,7 +10,7 @@ Two parts, each on the data that suits it:
 | **Prescriptive** | Which k of the new official stations should a reduced network keep? | agaar.gov.mn (NAMEM) via the data-mn archive, 22 UB stations, daily | Oct–Dec 2025 | Jan 2026 | Feb–Mar 2026 |
 
 The forecasting core starts after the raw-coal ban of 15 May 2019; station 8160's pre-ban
-winters (Nov 2016–Jun 2019) are used only for the optional sensitivity experiment (H5).
+winters (Nov 2016–Jun 2019) are used only for the optional sensitivity experiment, H6 (weather-adjusted coal-ban estimate, notebook 07).
 All dates and rules are in `configs/study_config.yaml`.
 
 ## Setup (macOS)
