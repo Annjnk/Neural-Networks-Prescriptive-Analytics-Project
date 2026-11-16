@@ -1,0 +1,77 @@
+{
+  "run_date": "2026-11-16",
+  "hypothesis": "H6: weather-adjusted winter PM2.5 is lower after the 15 May 2019 raw-coal ban than before",
+  "verdict": "inconclusive (placebo outside \u00b115%)",
+  "data": {
+    "start": "2016-11-09",
+    "end": "2024-06-30",
+    "ban": "2019-05-15",
+    "valid_days_pre_ban": 585,
+    "valid_days_post_ban": 1031
+  },
+  "inputs": [
+    "temp_mean",
+    "temp_min",
+    "temp_range",
+    "rh_mean",
+    "pressure_mean",
+    "wind_mean",
+    "calm_hours",
+    "wind_u",
+    "wind_v",
+    "doy_sin",
+    "doy_cos",
+    "dow_sin",
+    "dow_cos"
+  ],
+  "placebo": {
+    "rf": {
+      "season": "2018/19",
+      "effect": 0.313937398573946,
+      "n_days": 102
+    },
+    "linear": {
+      "season": "2018/19",
+      "effect": 0.09824124755592334,
+      "n_days": 102
+    }
+  },
+  "placebo_rule": "H6 inconclusive if |forest placebo effect| > 15%",
+  "pooled": {
+    "rf": {
+      "effect": -0.25249214548917887,
+      "lo": -0.2894690356937311,
+      "hi": -0.14998299656383185,
+      "n_days": 391
+    },
+    "linear": {
+      "effect": -0.1678328714910129,
+      "lo": -0.247722819503943,
+      "hi": -0.09307689825753206,
+      "n_days": 391
+    }
+  },
+  "dummy_regression": {
+    "coef": -0.05448902067100553,
+    "se": 0.05947368421239344,
+    "effect": -0.053031094116086044,
+    "lo": -0.15722683826492298,
+    "hi": 0.0640468271020566,
+    "pvalue": 0.3595687843513411,
+    "n_days": 1616,
+    "hac_maxlags": 7,
+    "r2": 0.6468661009342838
+  },
+  "bootstrap": {
+    "n": 500,
+    "block_days": 7,
+    "seed": 0,
+    "note": "pre-ban fit blocks resampled, post-ban days fixed: model uncertainty only"
+  },
+  "caveats": [
+    "weather-adjusted, not causal (population, fuel briquettes, COVID, warmer winters)",
+    "COVID winter 2020/21 included in the pooled estimates",
+    "pre-ban winters are 48-85% complete",
+    "on synthetic data the estimator is ~2 points too close to zero; the interval covers the truth ~75% of the time"
+  ]
+}

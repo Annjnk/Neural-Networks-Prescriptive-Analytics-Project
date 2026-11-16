@@ -7,4 +7,5 @@ scikit-learn>=1.4    # benchmarks from week 2
 torch>=2.2           # MLP and LSTM/GRU from week 2 (Apple-silicon builds install automatically)
 jupyterlab>=4.0      # notebooks
 ipykernel>=6.29      # lets VS Code use .venv as the notebook kernel
+statsmodels>=0.14    # HAC standard errors for the coal-ban dummy regression (notebook 07)
 pytest>=8.0
