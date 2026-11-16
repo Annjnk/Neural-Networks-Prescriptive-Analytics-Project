@@ -1,0 +1,19 @@
+{
+  "tag": "pre-test-v2",
+  "tag_commit": "64f73363b603c660f866d5b27dbba00b193903ff",
+  "head_commit": "481458767017605b34844c459f37c7a3a568402d",
+  "docstring_only_changes": [
+    "src/uaq/models.py",
+    "src/uaq/sequence.py",
+    "src/uaq/warnings.py"
+  ],
+  "hashes": {
+    "configs/study_config.yaml": "a95311566591ca829d34a0edb93708df80919f2f048368fdb5c75fb250e105b3",
+    "outputs/results/forecast_selected.json": "a6fe2aa546fc2a595b339de27a9cf4eded1baf513c4b153482c5647bd5690c40",
+    "outputs/results/warning_policy.json": "4ada0319807211e6edada9ed7fd018c75fd7edaa1a9be74d1cc3f8634dc06ac7"
+  },
+  "input_hashes": {
+    "data/processed/features_8160.csv": "c0ad75718236a4ba56227bb1938b3e64ab2b3c6c3037070a72d39032d15743ef"
+  },
+  "run_time": "2026-11-16T23:15:27+00:00"
+}

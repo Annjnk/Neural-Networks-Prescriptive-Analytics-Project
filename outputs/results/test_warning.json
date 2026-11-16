@@ -1,0 +1,104 @@
+{
+  "policy": {
+    "input": "max(lstm, today)",
+    "t1": 170.0,
+    "t2": 210.0,
+    "very_high": 221.40333333333334,
+    "matched_single_threshold": 170.00862
+  },
+  "cards": {
+    "policy": {
+      "days": 111,
+      "high_days": 11,
+      "very_high_days": 3,
+      "high_caught": 4,
+      "very_high_caught_l2": 1,
+      "weighted_recall": 0.35714285714285715,
+      "alerts": 11,
+      "alerts_l1": 8,
+      "alerts_l2": 3,
+      "false_alarms_l1": 6,
+      "false_alarms_l2": 1,
+      "missed": 7,
+      "longest_l2_run": 2,
+      "max_l2_per_winter": 3,
+      "caught_per_alert": 0.36363636363636365,
+      "l2_2024/25": 3,
+      "longest_alert_run": 3
+    },
+    "single threshold, matched budget": {
+      "days": 111,
+      "high_days": 11,
+      "very_high_days": 3,
+      "high_caught": 4,
+      "very_high_caught_l2": 2,
+      "weighted_recall": 0.42857142857142855,
+      "alerts": 11,
+      "alerts_l1": 0,
+      "alerts_l2": 11,
+      "false_alarms_l1": 0,
+      "false_alarms_l2": 7,
+      "missed": 7,
+      "longest_l2_run": 3,
+      "max_l2_per_winter": 11,
+      "caught_per_alert": 0.36363636363636365,
+      "l2_2024/25": 11,
+      "longest_alert_run": 3
+    },
+    "single threshold": {
+      "days": 111,
+      "high_days": 11,
+      "very_high_days": 3,
+      "high_caught": 4,
+      "very_high_caught_l2": 2,
+      "weighted_recall": 0.42857142857142855,
+      "alerts": 11,
+      "alerts_l1": 0,
+      "alerts_l2": 11,
+      "false_alarms_l1": 0,
+      "false_alarms_l2": 7,
+      "missed": 7,
+      "longest_l2_run": 3,
+      "max_l2_per_winter": 11,
+      "caught_per_alert": 0.36363636363636365,
+      "l2_2024/25": 11,
+      "longest_alert_run": 3
+    },
+    "official line": {
+      "days": 111,
+      "high_days": 11,
+      "very_high_days": 3,
+      "high_caught": 10,
+      "very_high_caught_l2": 3,
+      "weighted_recall": 0.9285714285714286,
+      "alerts": 98,
+      "alerts_l1": 0,
+      "alerts_l2": 98,
+      "false_alarms_l1": 0,
+      "false_alarms_l2": 88,
+      "missed": 1,
+      "longest_l2_run": 44,
+      "max_l2_per_winter": 98,
+      "caught_per_alert": 0.10204081632653061,
+      "l2_2024/25": 98,
+      "longest_alert_run": 44
+    }
+  },
+  "h5": {
+    "verdict": "NOT SUPPORTED",
+    "policy_caught_per_alert": 0.36363636363636365,
+    "matched_caught_per_alert": 0.36363636363636365
+  },
+  "fatigue_descriptive": {
+    "policy": {
+      "longest_warning_run": 2,
+      "warnings": 3,
+      "warnings 2024/25": 3
+    },
+    "single threshold, matched budget": {
+      "longest_warning_run": 3,
+      "warnings": 11,
+      "warnings 2024/25": 11
+    }
+  }
+}
