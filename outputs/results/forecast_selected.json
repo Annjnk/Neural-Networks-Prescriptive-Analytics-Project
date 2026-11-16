@@ -125,5 +125,63 @@
       "pm_max_hourly": 0.0,
       "w_blh_night_change": 0.0
     }
+  },
+  "lstm": {
+    "run_date": "2026-11-16",
+    "history_days": 7,
+    "history_days_rule": {
+      "fold1_fit_windows_at_default": 136,
+      "default": 14,
+      "min_fit_sequences": 150,
+      "fallback": 7
+    },
+    "sequence_columns": {
+      "with_weather": [
+        "pm_lag0",
+        "pm_evening",
+        "pm_last_hour",
+        "pm_max_hourly",
+        "doy_sin",
+        "doy_cos",
+        "dow_sin",
+        "dow_cos",
+        "weekend",
+        "w_temp_mean",
+        "w_temp_min",
+        "w_temp_range",
+        "w_rh_mean",
+        "w_pressure_mean",
+        "w_wind_mean",
+        "w_calm_hours",
+        "w_wind_u",
+        "w_wind_v"
+      ],
+      "without_weather": [
+        "pm_lag0",
+        "pm_evening",
+        "pm_last_hour",
+        "pm_max_hourly",
+        "doy_sin",
+        "doy_cos",
+        "dow_sin",
+        "dow_cos",
+        "weekend"
+      ]
+    },
+    "chosen": {
+      "lstm (weather)": {
+        "config": "lstm hidden=64 dropout=0.2 wd=0.0001 lr=0.001",
+        "mean_mae": 45.922576114761185
+      },
+      "lstm (no weather)": {
+        "config": "lstm hidden=32 dropout=0.2 wd=0.0001 lr=0.001",
+        "mean_mae": 49.13427247220863
+      }
+    },
+    "fair_comparison_mean_mae": {
+      "persistence": 55.86181214317085,
+      "mlp (weather)": 44.83705830647075,
+      "lstm (weather)": 45.922576114761185
+    }
   }
 }

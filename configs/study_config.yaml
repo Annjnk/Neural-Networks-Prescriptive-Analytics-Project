@@ -83,6 +83,16 @@ forecast:
       patience: 20
       batch_size: 64
       early_stop_tail: 0.15        # last 15% of the FIT rows (chronological) for early stopping
+    lstm_grid: {hidden: [32, 64], dropout: [0.0, 0.2], lr: [0.001], weight_decay: [0.0001],
+                max_epochs: 300, patience: 20, batch_size: 32, early_stop_tail: 0.15}
+    # Fixed before training, based on availability only: use history_days from forecast.history_days (14);
+    # if fold 1 has fewer than 150 fit sequences, use 7 instead, for every fold and both feature sets.
+    # Counted on the with-weather sequence columns (uaq.sequence.history_days_rule).
+    lstm_min_fit_sequences: 150
+    lstm_fallback_history_days: 7
+    # Daily inputs only (no rolling means, they duplicate the sequence). With weather, add every w_* column
+    # except *_change, *_tplus1 and anything in features.drop_columns (uaq.sequence.sequence_columns).
+    sequence_columns: [pm_lag0, pm_evening, pm_last_hour, pm_max_hourly, doy_sin, doy_cos, dow_sin, dow_cos, weekend]
 
 # ---------------------------------------------------------------------------
 # Part 2: network design (agaar.gov.mn via the data-mn archive, daily)
