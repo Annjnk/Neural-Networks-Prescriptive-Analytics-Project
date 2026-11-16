@@ -20,24 +20,58 @@ def _git(root, *args):
                           capture_output=True, text=True, check=True).stdout.strip()
 
 
+CODE = '"""Module docstring."""\n\n\ndef f(x):\n    """Old docstring."""\n    return x + 1  # a comment\n'
+
+
+def _commit(root, msg="change"):
+    _git(root, "add", "-A")
+    _git(root, "commit", "-q", "-m", msg)
+
+
 @pytest.fixture
 def repo(tmp_path):
     """A tiny git repo with the frozen files committed and tagged pre-test-v2."""
-    for f in tr.FROZEN_FILES:
+    files = {**{f: f"frozen {f}\n" for f in tr.FROZEN_FILES}, "src/uaq/models.py": CODE, "src/uaq/test_run.py": "X = 1\n",
+             "notebooks/09_test_run.ipynb": "{}\n"}
+    for f, text in files.items():
         p = tmp_path / f
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(f"frozen {f}\n")
+        p.write_text(text)
     _git(tmp_path, "init", "-q")
-    _git(tmp_path, "add", "-A")
-    _git(tmp_path, "commit", "-q", "-m", "frozen")
+    _commit(tmp_path, "frozen")
     _git(tmp_path, "tag", tr.TAG)
     return tmp_path
 
 
 def test_preconditions_pass_on_a_clean_tagged_tree(repo):
     info = tr.check_preconditions(repo)
-    assert info["commit"] == _git(repo, "rev-parse", "HEAD") and info["tag"] == tr.TAG
-    assert set(info["hashes"]) == set(tr.FROZEN_FILES)
+    head = _git(repo, "rev-parse", "HEAD")
+    assert info["tag_commit"] == info["head_commit"] == head and info["tag"] == tr.TAG
+    assert set(info["hashes"]) == set(tr.FROZEN_FILES) and info["docstring_only_changes"] == []
+
+
+def test_later_commits_to_test_run_notebooks_or_docstrings_are_allowed(repo):
+    (repo / "src/uaq/test_run.py").write_text("X = 2\n")
+    (repo / "notebooks/09_test_run.ipynb").write_text('{"cells": []}\n')
+    (repo / "src/uaq/models.py").write_text(CODE.replace("Old docstring.", "New docstring.").replace("a comment", "edited"))
+    _commit(repo)
+    info = tr.check_preconditions(repo)
+    assert info["head_commit"] != info["tag_commit"] and info["docstring_only_changes"] == ["src/uaq/models.py"]
+
+
+@pytest.mark.parametrize("path,text", [
+    ("configs/study_config.yaml", "changed\n"),
+    ("outputs/results/forecast_selected.json", "changed\n"),
+    ("outputs/results/network_validation.csv", "a new earlier-style results file\n"),
+    ("src/uaq/models.py", CODE.replace("x + 1", "x + 2")),                  # a code change, not a docstring
+    ("src/uaq/new_module.py", "Y = 1\n"),                                 # an added module
+])
+def test_preconditions_refuse_changed_frozen_files(repo, path, text):
+    (repo / path).parent.mkdir(parents=True, exist_ok=True)
+    (repo / path).write_text(text)
+    _commit(repo)
+    with pytest.raises(RuntimeError, match="changed since|added or removed"):
+        tr.check_preconditions(repo)
 
 
 def test_preconditions_refuse_a_dirty_tree(repo):
@@ -50,22 +84,16 @@ def test_preconditions_refuse_a_dirty_tree(repo):
         tr.check_preconditions(repo)
 
 
-def test_preconditions_refuse_a_wrong_tag(repo):
-    (repo / "later.txt").write_text("a later commit\n")
-    _git(repo, "add", "-A")
-    _git(repo, "commit", "-q", "-m", "later")
-    with pytest.raises(RuntimeError, match="is not the commit tagged"):
-        tr.check_preconditions(repo)
+def test_preconditions_refuse_a_missing_tag(repo):
     with pytest.raises(RuntimeError, match="not found"):
         tr.check_preconditions(repo, tag="no-such-tag")
 
 
 def test_preconditions_refuse_an_existing_log_unless_a_rerun_reason_is_logged(repo):
-    log = repo / tr.LOG
-    log.write_text(json.dumps({"tag": tr.TAG}))
-    _git(repo, "add", "-A")
-    _git(repo, "commit", "-q", "-m", "log")
-    _git(repo, "tag", "-f", tr.TAG)
+    (repo / tr.LOG).write_text(json.dumps({"tag": tr.TAG}))
+    (repo / tr.RESULTS / "test_summary.json").write_text("{}")             # test outputs do not count as frozen files
+    (repo / tr.RESULTS / "network_test.csv").write_text("k\n")
+    _commit(repo, "test run")
     with pytest.raises(RuntimeError, match="already happened"):
         tr.check_preconditions(repo)
     info = tr.check_preconditions(repo, rerun_reason="evaluation bug: wrong column")
@@ -79,7 +107,7 @@ def test_write_log_records_tag_commit_time_and_hashes(repo):
     info = tr.check_preconditions(repo)
     log = tr.write_log(repo, info)
     saved = json.loads((repo / tr.LOG).read_text())
-    assert saved == log and {"tag", "commit", "hashes", "run_time"} <= set(saved)
+    assert saved == log and {"tag", "tag_commit", "head_commit", "hashes", "run_time"} <= set(saved)
     assert saved["hashes"]["configs/study_config.yaml"] == tr.sha256(repo / "configs" / "study_config.yaml")
 
 

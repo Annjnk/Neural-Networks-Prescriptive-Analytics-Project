@@ -1,13 +1,14 @@
-"""The single test evaluation (notebook 09). Runs ONCE, on or after 23 November.
+"""The single test evaluation (notebook 09). Runs ONCE, after the tag pre-test-v2.
 
 This is the only module that reads test-split PM2.5 (and the network test months). It only CALLS the frozen
 functions of uaq.models, uaq.sequence, uaq.warnings, uaq.network and uaq.audit_network with the choices recorded
 before the test (configs/study_config.yaml, outputs/results/forecast_selected.json, warning_policy.json,
 network_validation.csv). Nothing chosen earlier is changed. Evaluation constants below were fixed before the run.
 
-Preconditions (check_preconditions): the working tree is clean, HEAD is the commit tagged pre-test-v2, and
-outputs/results/test_run_log.json does not exist (no re-runs; the only allowed re-run fixes a bug in EVALUATION code
-and must be logged with its reason).
+Preconditions (check_preconditions): the working tree is clean; no frozen file changed since the tag pre-test-v2
+(configs/ and earlier outputs/results/ files byte for byte; any changed .py file under src/uaq/ other than
+test_run.py must have the same code, compared as ASTs without docstrings); and outputs/results/test_run_log.json does
+not exist (no re-runs; the only allowed re-run fixes a bug in EVALUATION code and must be logged with its reason).
 """
 from __future__ import annotations
 
@@ -30,6 +31,8 @@ RESULTS = Path("outputs") / "results"
 LOG = RESULTS / "test_run_log.json"
 FROZEN_FILES = ("configs/study_config.yaml", "outputs/results/forecast_selected.json",
                 "outputs/results/warning_policy.json")
+INPUT_FILES = ("data/processed/features_8160.csv",)       # git-ignored inputs: hashed in the log for provenance
+NEW_OUTPUTS = (":(exclude,glob)outputs/results/test_*", ":(exclude)outputs/results/network_test.csv")
 OUTPUT_FILES = ("test_forecast.csv", "test_warning.csv", "test_warning.json", "network_test.csv",
                 "test_summary.json", "test_run_log.json")
 BOOT_N, BOOT_BLOCK_DAYS, BOOT_SEED = 1000, 7, 0          # paired block bootstrap of MAE differences
@@ -46,9 +49,20 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def _code_without_docstrings(source: str) -> str:
+    """AST dump with module, class and function docstrings removed (comments are not in the AST either)."""
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) and node.body:
+            first = node.body[0]
+            if isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant) and isinstance(first.value.value, str):
+                node.body = node.body[1:] or [ast.Pass()]
+    return ast.dump(tree)
+
+
 def check_preconditions(root: Path = ROOT, tag: str = TAG, rerun_reason: str | None = None) -> dict:
-    """Raise RuntimeError unless the tree is clean, HEAD is the commit tagged `tag`, and no test-run log exists
-    (or `rerun_reason` is given for a logged EVALUATION-code fix). Returns tag, commit and frozen-file hashes."""
+    """Raise RuntimeError unless the tree is clean, no frozen file changed since `tag`, and no test-run log exists
+    (or `rerun_reason` is given for a logged EVALUATION-code fix). Returns both commit hashes and file hashes."""
     root = Path(root)
     if _git(root, "status", "--porcelain"):
         raise RuntimeError("the working tree is not clean: commit or remove changes before the test run")
@@ -57,12 +71,24 @@ def check_preconditions(root: Path = ROOT, tag: str = TAG, rerun_reason: str | N
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"tag {tag!r} not found") from e
     head = _git(root, "rev-parse", "HEAD")
-    if head != tagged:
-        raise RuntimeError(f"HEAD {head[:7]} is not the commit tagged {tag} ({tagged[:7]})")
+    frozen = _git(root, "diff", "--name-only", tag, "HEAD", "--", "configs/", "outputs/results/", *NEW_OUTPUTS)
+    if frozen:
+        raise RuntimeError(f"frozen files changed since {tag}: {frozen.split()}")
+    doc_only = []
+    for f in _git(root, "diff", "--name-only", tag, "HEAD", "--", "src/uaq/", ":(exclude)src/uaq/test_run.py").split():
+        try:
+            old, new = _git(root, "show", f"{tag}:{f}"), _git(root, "show", f"HEAD:{f}")
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"{f} was added or removed since {tag}") from e
+        if not f.endswith(".py") or _code_without_docstrings(old) != _code_without_docstrings(new):
+            raise RuntimeError(f"code changed since {tag}: {f}")
+        doc_only.append(f)
     if (root / LOG).exists() and not rerun_reason:
         raise RuntimeError(f"{LOG} exists: the test run has already happened, no re-runs "
                            "(only an EVALUATION-code bug fix may re-run, with rerun_reason logged)")
-    return {"tag": tag, "commit": head, "hashes": {f: sha256(root / f) for f in FROZEN_FILES}}
+    return {"tag": tag, "tag_commit": tagged, "head_commit": head, "docstring_only_changes": doc_only,
+            "hashes": {f: sha256(root / f) for f in FROZEN_FILES},
+            "input_hashes": {f: sha256(root / f) for f in INPUT_FILES if (root / f).exists()}}
 
 
 def write_log(root: Path, info: dict, rerun_reason: str | None = None) -> dict:
@@ -218,7 +244,11 @@ def warning_results(table: pd.DataFrame, feat: pd.DataFrame, cfg: dict, policy: 
         cards[name] = {**c, "longest_alert_run": wp._longest_run(any_level, k=1)}
         days[f"level_{name}"] = lev.reindex(days.index).fillna(0).astype(int)
     h5 = cards["policy"]["caught_per_alert"] > cards["single threshold, matched budget"]["caught_per_alert"]
-    return {"days": days.drop(columns="level"), "cards": cards,
+    # Pre-declared secondary outcome: descriptive, no verdict.
+    fatigue = {name: {"longest_warning_run": cards[name]["longest_l2_run"], "warnings": cards[name]["alerts_l2"],
+                      **{f"warnings {k[3:]}": v for k, v in cards[name].items() if k.startswith("l2_")}}
+               for name in ("policy", "single threshold, matched budget")}
+    return {"days": days.drop(columns="level"), "cards": cards, "fatigue": fatigue,
             "h5": {"verdict": "SUPPORTED" if h5 else "NOT SUPPORTED",
                    "policy_caught_per_alert": cards["policy"]["caught_per_alert"],
                    "matched_caught_per_alert": cards["single threshold, matched budget"]["caught_per_alert"]}}
