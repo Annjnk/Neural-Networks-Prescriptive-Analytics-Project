@@ -109,3 +109,22 @@ def test_forecast_eligibility_counts_partial_winters():
     assert e["good_train_winters"] == 2 and e["train_valid_smog_days"] >= 240 and bool(e["eligible"])
     cov[[2023]] = 0.6                                   # a weak validation winter still fails
     assert not bool(eligibility(cov, CFG).loc["8160", "eligible"])
+
+
+def test_plot_season_means_never_plots_a_season_after_validation():
+    import matplotlib
+    matplotlib.use("Agg", force=True)
+    import matplotlib.pyplot as plt
+    from uaq.audit_forecast import plot_season_means
+
+    val_end = pd.Timestamp(CFG["forecast"]["periods"]["split"]["val"]["end"])
+    dates = pd.date_range("2019-07-01", CFG["forecast"]["periods"]["split"]["test"]["end"], freq="D")
+    daily = pd.DataFrame({"station_id": "A", "date": dates, "valid": True,
+                          "pm25_daily": np.where(dates > val_end, 9999.0, 100.0)})   # poison the test period
+    ax = plot_season_means(daily, CFG)
+    ax.figure.canvas.draw()
+    labels = [t.get_text() for t in ax.get_xticklabels()]
+    heights = [p.get_height() for p in ax.patches]
+    plt.close(ax.figure)
+    assert labels == ["2019/20", "2020/21", "2021/22", "2022/23", "2023/24"]
+    assert max(heights) == 100.0

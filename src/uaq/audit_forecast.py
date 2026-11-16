@@ -102,8 +102,14 @@ def plot_coverage(cov: pd.DataFrame, thr: float, ax=None):
 
 
 def plot_season_means(daily: pd.DataFrame, cfg: dict, ax=None):
-    d = daily[daily["valid"] & in_months(daily["date"], cfg["smog_months"]).values].copy()
-    d["season_year"] = season_year(d["date"]).values
+    """Mean smog-season PM2.5 per season, for seasons that end on or before the validation end only:
+    test-season PM2.5 is never plotted (CLAUDE.md hard rule 1)."""
+    val_end = pd.Timestamp(cfg["forecast"]["periods"]["split"]["val"]["end"])
+    start_month = cfg.get("season_start_month", 7)
+    d = daily[daily["valid"] & in_months(daily["date"], cfg["smog_months"]).values & (daily["date"] <= val_end)].copy()
+    d["season_year"] = season_year(d["date"], start_month).values
+    season_end = pd.to_datetime([f"{s + 1}-{start_month:02d}-01" for s in d["season_year"]]) - pd.Timedelta(days=1)
+    d = d[season_end <= val_end]
     city = d.groupby(["season_year", "date"])["pm25_daily"].median().groupby("season_year").mean()
     ax = ax or plt.subplots(figsize=(7, 3.5))[1]
     ax.bar([season_label(s) for s in city.index], city.values, color="#4C72B0")
