@@ -31,7 +31,7 @@ Weather: hourly ERA5 from Open-Meteo, `models=era5`, requested in UTC (grid poin
 
 ## Hard rules
 
-1. **Test data is sealed until 23 November.** No code scores, plots or prints test-split PM2.5 before then.
+1. **Test data is sealed until the single test run (notebook 09), after the tag pre-test-v2.** No code scores, plots or prints test-split PM2.5 before then.
    Test-period *weather* may be used only for the mildness check. Functions that predict the test split may
    be written and unit-tested, but not called.
 2. **Forecasting fits start at the core date (2019-07-01).** Every fit set uses `target_date >= core.start`.

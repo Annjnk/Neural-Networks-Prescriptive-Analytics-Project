@@ -7,7 +7,7 @@ days), the next day is downgraded to level 1. A missing forecast gives level 0.
 The policy (input forecast, t1, t2) is chosen on the two validation winters only, under per-winter budgets for
 level-2 days and for all alert days, by severity-weighted recall: a high day (observed > high) earns 1 if alerted at any level; a very-high day
 (observed > the training 90th percentile) earns 2 at level 2, 1 at level 1. Ties go to fewer alerts.
-The test winter is scored only by evaluate_on_test(), once, on 23 November (CLAUDE.md rule 1).
+The test winter is scored only by evaluate_on_test(), once, on the single test run (notebook 09), after the tag pre-test-v2 (CLAUDE.md rule 1).
 """
 from __future__ import annotations
 
@@ -189,7 +189,7 @@ def matched_single_threshold(f: pd.Series, y: pd.Series, cfg: dict, very_high: f
 def evaluate_on_test(policy: dict, test_preds: pd.DataFrame, features: pd.DataFrame, cfg: dict, very_high: float):
     """Apply the FROZEN policy (input, t1, t2) to test-split forecasts (pred_<model> columns indexed by target_date,
     from fit_final_and_predict / fit_final_and_predict_lstm) and score it on observed test smog-season days.
-    Runs ONCE, on 23 November. Returns (per-day frame, scorecard)."""
+    Runs ONCE, on the single test run (notebook 09), after the tag pre-test-v2. Returns (per-day frame, scorecard)."""
     f = features.set_index("target_date")
     test_days = f.index[(f["split"] == "test").to_numpy() & in_months(pd.Series(f.index), cfg["smog_months"]).to_numpy()]
     fc = input_series(policy["input"], test_preds, features)

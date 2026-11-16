@@ -4,7 +4,7 @@ Protocol (CLAUDE.md, hard rules 2-6):
   - fit rows: core.start <= target_date <= fold train_end, every month (forecast.models.fit_on);
   - score rows: the fold's validation window, smog-season targets only;
   - select on the mean MAE of the rolling folds; the test split is never fitted, scored or returned,
-    except by fit_final_and_predict(), which runs once, on 23 November;
+    except by fit_final_and_predict(), which runs once, on the single test run (notebook 09), after the tag pre-test-v2;
   - every scaler, target transform and climatology is fitted on the fit rows only;
   - skill is always measured against persistence on the same rows.
 
@@ -303,7 +303,7 @@ def predictions(frame: pd.DataFrame, cols: list[str], factory, cfg: dict) -> pd.
 
 def fit_final_and_predict(frame: pd.DataFrame, cols: list[str], factory, cfg: dict) -> pd.DataFrame:
     """Fit on core.start <= target_date <= validation end, predict the test split.
-    Runs ONCE, on 23 November (CLAUDE.md hard rule 1); returns target_date, smog, pred only."""
+    Runs ONCE, on the single test run (notebook 09), after the tag pre-test-v2 (CLAUDE.md hard rule 1); returns target_date, smog, pred only."""
     p = cfg["forecast"]["periods"]
     cc = complete_rows(frame, cols)
     fit = cc[(cc["target_date"] >= pd.Timestamp(p["core"]["start"]))
