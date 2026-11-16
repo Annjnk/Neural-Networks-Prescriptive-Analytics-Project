@@ -74,6 +74,7 @@ Weather: hourly ERA5 from Open-Meteo, `models=era5`, requested in UTC (grid poin
 | 08 | Fatigue-aware warning policy: two alert levels chosen on validation, max warnings per winter and max consecutive warning days | 17–22 Nov |
 
 Model choice is frozen by 18 November and the commit tagged `pre-test`. The single test run is on 23 November.
+Final pre-test state = tag pre-test-v2 (warning policy revised on validation: advisories were unbudgeted)
 
 ## Out of scope (do not add)
 

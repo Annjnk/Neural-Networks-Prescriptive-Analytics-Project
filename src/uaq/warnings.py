@@ -4,8 +4,8 @@ A policy turns a next-day PM2.5 forecast into an alert level per day: 2 (warning
 1 (advisory) if t1 <= forecast < t2, else 0. Fatigue rule: after `max_consecutive` level-2 days in a row (calendar
 days), the next day is downgraded to level 1. A missing forecast gives level 0.
 
-The policy (input forecast, t1, t2) is chosen on the two validation winters only, under a level-2 budget per winter,
-by severity-weighted recall: a high day (observed > high) earns 1 if alerted at any level; a very-high day
+The policy (input forecast, t1, t2) is chosen on the two validation winters only, under per-winter budgets for
+level-2 days and for all alert days, by severity-weighted recall: a high day (observed > high) earns 1 if alerted at any level; a very-high day
 (observed > the training 90th percentile) earns 2 at level 2, 1 at level 1. Ties go to fewer alerts.
 The test winter is scored only by evaluate_on_test(), once, on 23 November (CLAUDE.md rule 1).
 """
@@ -133,8 +133,9 @@ def score_policy(y: pd.Series, level: pd.Series, cfg: dict, very_high: float | N
 
 # ---------------------------------------------------------------------- choice and baselines
 def search(inputs: dict, y: pd.Series, cfg: dict, very_high: float) -> pd.DataFrame:
-    """Every input x (t1 < t2) on the grid, validation days only. Keeps combinations within the level-2 budget in
-    EACH validation winter; sorted by weighted recall (desc), then fewer alerts, then config input order, t1, t2.
+    """Every input x (t1 < t2) on the grid, validation days only. Keeps combinations that, in EACH validation
+    winter, use at most max_alert_days_per_winter alert days (any level) and at most max_warning_days_per_winter
+    level-2 days; sorted by weighted recall (desc), then fewer alerts, then config input order, t1, t2.
     The first row is the chosen policy."""
     w = cfg["warnings"]
     g = w["threshold_grid"]
@@ -153,12 +154,14 @@ def search(inputs: dict, y: pd.Series, cfg: dict, very_high: float) -> pd.DataFr
             for t2 in grid[grid > t1]:
                 lev = _levels(vals, day, t1, t2, w["max_consecutive_warnings"])
                 l2 = [(lev[winter == k] == 2).sum() for k in winters]
-                if max(l2) > w["max_warning_days_per_winter"]:
+                alerts = [(lev[winter == k] >= 1).sum() for k in winters]
+                if max(l2) > w["max_warning_days_per_winter"] or max(alerts) > w["max_alert_days_per_winter"]:
                     continue
                 credit = np.where(very, np.select([lev == 2, lev == 1], [2, 1], 0), np.where(high & (lev >= 1), 1, 0))
                 rows.append({"input": name, "order": order, "t1": float(t1), "t2": float(t2),
                              "weighted_recall": credit.sum() / weight.sum(), "alerts": int((lev >= 1).sum()),
-                             "alerts_l2": int((lev == 2).sum()), "max_l2_per_winter": int(max(l2))})
+                             "alerts_l2": int((lev == 2).sum()), "max_l2_per_winter": int(max(l2)),
+                             "max_alerts_per_winter": int(max(alerts))})
     res = pd.DataFrame(rows).sort_values(["weighted_recall", "alerts", "order", "t1", "t2"],
                                          ascending=[False, True, True, True, True])
     return res.drop(columns="order").reset_index(drop=True)
@@ -171,6 +174,16 @@ def single_threshold_rule(f: pd.Series, y: pd.Series, cfg: dict, very_high: floa
     f = f.sort_index()
     lev = pd.Series(np.where(f.to_numpy(float) >= thr, 2, 0), index=f.index, name="level")
     return lev, score_policy(y, lev, cfg, very_high)
+
+
+def matched_single_threshold(f: pd.Series, y: pd.Series, cfg: dict, very_high: float, alerts: int):
+    """Single-threshold rule with the threshold set so it uses `alerts` alert days on the days of `y`: the threshold
+    is the alerts-th largest forecast (ties can add days). For comparing caught-per-alert at an equal alert count.
+    Returns (threshold, levels, scorecard)."""
+    vals = np.sort(f.reindex(y.index).dropna().to_numpy(float))[::-1]
+    thr = float(vals[min(max(alerts, 1), len(vals)) - 1])
+    lev, card = single_threshold_rule(f.reindex(y.index), y, cfg, very_high, threshold=thr)
+    return thr, lev, card
 
 
 def evaluate_on_test(policy: dict, test_preds: pd.DataFrame, features: pd.DataFrame, cfg: dict, very_high: float):

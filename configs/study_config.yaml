@@ -104,6 +104,10 @@ warnings:
                                # from training days by uaq.warnings.very_high_value; stored in the json output)
   max_warning_days_per_winter: 20   # level-2 budget, about 1 day in 6 of a 120-day winter
   max_consecutive_warnings: 2       # response fades after 1-2 consecutive alerts (Graff Zivin & Neidell 2009)
+  # Added after the first validation run (notebook 08): advisories (level 1) were unbudgeted, so the search drove
+  # t1 to the grid floor (80) and the policy alerted on 158 of 219 validation days (0.34 caught per alert vs 0.59
+  # for the single-threshold rule). Budget all levels; test winter still sealed.
+  max_alert_days_per_winter: 40     # all levels; about 1 day in 3 of a 120-day winter
   threshold_grid: {start: 80, stop: 400, step: 10}
   inputs: ["mlp (weather)", "lstm (weather)", "hgb (weather)", "max(mlp, today)", "max(lstm, today)"]
 

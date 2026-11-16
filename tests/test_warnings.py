@@ -114,3 +114,21 @@ def test_evaluate_on_test_scores_only_test_smog_days_with_the_frozen_policy():
     days, s = wp.evaluate_on_test({"input": "mlp (weather)", "t1": 150, "t2": 250}, preds, feats, CFG, VH)
     assert days.index.month.isin(CFG["smog_months"]).all() and len(days) == s["days"]
     assert days["level"].isin([0, 1, 2]).all() and s["longest_l2_run"] <= W["max_consecutive_warnings"]
+
+
+def test_search_never_exceeds_the_total_alert_budget_in_any_winter():
+    y, f = _synth()
+    tight = copy.deepcopy(CFG)
+    tight["warnings"]["max_alert_days_per_winter"] = 15
+    res = wp.search({"mlp (weather)": f}, y, tight, VH)
+    assert len(res) and (res["max_alerts_per_winter"] <= 15).all()
+    for _, r in res.iterrows():                                          # recompute every kept combination
+        lev = wp.apply_policy(f, r["t1"], r["t2"], W["max_consecutive_warnings"])
+        per_winter = (lev >= 1).groupby(season_year(pd.Series(lev.index)).values).sum()
+        assert (per_winter <= 15).all()
+
+
+def test_matched_single_threshold_uses_the_target_alert_count():
+    y, f = _synth()
+    thr, lev, card = wp.matched_single_threshold(f, y, CFG, VH, alerts=40)
+    assert card["alerts"] == 40 and (f.reindex(y.index)[lev.reindex(y.index) == 2] >= thr).all()
