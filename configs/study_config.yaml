@@ -95,6 +95,19 @@ forecast:
     sequence_columns: [pm_lag0, pm_evening, pm_last_hour, pm_max_hourly, doy_sin, doy_cos, dow_sin, dow_cos, weekend]
 
 # ---------------------------------------------------------------------------
+# Fatigue-aware day-ahead warning policy (H5, notebook 08). Every value is fixed
+# before any policy is scored; the policy is chosen on the two validation winters.
+# ---------------------------------------------------------------------------
+warnings:
+  high: 170.8                  # notebook 05 study threshold (training 75th percentile)
+  very_high_quantile: 0.90     # very-high days = above the training smog-season 90th percentile (computed once
+                               # from training days by uaq.warnings.very_high_value; stored in the json output)
+  max_warning_days_per_winter: 20   # level-2 budget, about 1 day in 6 of a 120-day winter
+  max_consecutive_warnings: 2       # response fades after 1-2 consecutive alerts (Graff Zivin & Neidell 2009)
+  threshold_grid: {start: 80, stop: 400, step: 10}
+  inputs: ["mlp (weather)", "lstm (weather)", "hgb (weather)", "max(mlp, today)", "max(lstm, today)"]
+
+# ---------------------------------------------------------------------------
 # Weather-adjusted estimate of the 15 May 2019 raw-coal ban (H6, notebook 07)
 # A "no-ban" counterfactual is trained on pre-ban days (all months) from
 # forecast.periods.pre_ban_sensitivity.start and reported on smog-season days.

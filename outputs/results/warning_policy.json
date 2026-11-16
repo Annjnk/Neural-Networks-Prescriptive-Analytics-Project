@@ -1,0 +1,181 @@
+{
+  "run_date": "2026-11-16",
+  "input": "mlp (weather)",
+  "t1": 80.0,
+  "t2": 170.0,
+  "high": 170.8,
+  "very_high": 221.40333333333334,
+  "very_high_quantile": 0.9,
+  "rules": {
+    "max_warning_days_per_winter": 20,
+    "max_consecutive_warnings": 2,
+    "fatigue": "after max_consecutive level-2 days in a row (calendar days), the next day is downgraded to level 1",
+    "threshold_grid": {
+      "start": 80,
+      "stop": 400,
+      "step": 10
+    },
+    "inputs": [
+      "mlp (weather)",
+      "lstm (weather)",
+      "hgb (weather)",
+      "max(mlp, today)",
+      "max(lstm, today)"
+    ],
+    "objective": "severity-weighted recall: high day 1 if alerted at any level; very-high day 2 at level 2, 1 at level 1",
+    "ties": "fewer alerts, then config input order, then lower t1, t2",
+    "budget": "level-2 days <= max_warning_days_per_winter in each validation winter; advisories unbudgeted"
+  },
+  "disclosure": "A dry run before freezing showed the advisory threshold at the grid floor; the rule was kept as specified.",
+  "validation": {
+    "policy": {
+      "days": 219,
+      "high_days": 55,
+      "very_high_days": 21,
+      "high_caught": 54,
+      "very_high_caught_l2": 13,
+      "weighted_recall": 0.881578947368421,
+      "alerts": 158,
+      "alerts_l1": 126,
+      "alerts_l2": 32,
+      "false_alarms_l1": 89,
+      "false_alarms_l2": 15,
+      "missed": 1,
+      "longest_l2_run": 2,
+      "max_l2_per_winter": 19,
+      "caught_per_alert": 0.34177215189873417,
+      "l2_2021/22": 19,
+      "l2_2023/24": 13
+    },
+    "single_threshold": {
+      "days": 219,
+      "high_days": 55,
+      "very_high_days": 21,
+      "high_caught": 22,
+      "very_high_caught_l2": 16,
+      "weighted_recall": 0.5,
+      "alerts": 37,
+      "alerts_l1": 0,
+      "alerts_l2": 37,
+      "false_alarms_l1": 0,
+      "false_alarms_l2": 15,
+      "missed": 33,
+      "longest_l2_run": 8,
+      "max_l2_per_winter": 22,
+      "caught_per_alert": 0.5945945945945946,
+      "l2_2021/22": 22,
+      "l2_2023/24": 15
+    },
+    "official_line": {
+      "days": 219,
+      "high_days": 55,
+      "very_high_days": 21,
+      "high_caught": 55,
+      "very_high_caught_l2": 21,
+      "weighted_recall": 1.0,
+      "alerts": 195,
+      "alerts_l1": 0,
+      "alerts_l2": 195,
+      "false_alarms_l1": 0,
+      "false_alarms_l2": 140,
+      "missed": 0,
+      "longest_l2_run": 67,
+      "max_l2_per_winter": 99,
+      "caught_per_alert": 0.28205128205128205,
+      "l2_2021/22": 96,
+      "l2_2023/24": 99
+    }
+  },
+  "top10": [
+    {
+      "input": "mlp (weather)",
+      "t1": 80.0,
+      "t2": 170.0,
+      "weighted_recall": 0.881578947368421,
+      "alerts": 158,
+      "alerts_l2": 32,
+      "max_l2_per_winter": 19
+    },
+    {
+      "input": "mlp (weather)",
+      "t1": 100.0,
+      "t2": 170.0,
+      "weighted_recall": 0.868421052631579,
+      "alerts": 137,
+      "alerts_l2": 32,
+      "max_l2_per_winter": 19
+    },
+    {
+      "input": "mlp (weather)",
+      "t1": 90.0,
+      "t2": 170.0,
+      "weighted_recall": 0.868421052631579,
+      "alerts": 147,
+      "alerts_l2": 32,
+      "max_l2_per_winter": 19
+    },
+    {
+      "input": "mlp (weather)",
+      "t1": 80.0,
+      "t2": 180.0,
+      "weighted_recall": 0.868421052631579,
+      "alerts": 158,
+      "alerts_l2": 24,
+      "max_l2_per_winter": 16
+    },
+    {
+      "input": "mlp (weather)",
+      "t1": 110.0,
+      "t2": 170.0,
+      "weighted_recall": 0.8552631578947368,
+      "alerts": 128,
+      "alerts_l2": 32,
+      "max_l2_per_winter": 19
+    },
+    {
+      "input": "mlp (weather)",
+      "t1": 100.0,
+      "t2": 180.0,
+      "weighted_recall": 0.8552631578947368,
+      "alerts": 137,
+      "alerts_l2": 24,
+      "max_l2_per_winter": 16
+    },
+    {
+      "input": "mlp (weather)",
+      "t1": 90.0,
+      "t2": 180.0,
+      "weighted_recall": 0.8552631578947368,
+      "alerts": 147,
+      "alerts_l2": 24,
+      "max_l2_per_winter": 16
+    },
+    {
+      "input": "max(mlp, today)",
+      "t1": 80.0,
+      "t2": 210.0,
+      "weighted_recall": 0.8552631578947368,
+      "alerts": 166,
+      "alerts_l2": 28,
+      "max_l2_per_winter": 18
+    },
+    {
+      "input": "mlp (weather)",
+      "t1": 110.0,
+      "t2": 180.0,
+      "weighted_recall": 0.8421052631578947,
+      "alerts": 128,
+      "alerts_l2": 24,
+      "max_l2_per_winter": 16
+    },
+    {
+      "input": "max(lstm, today)",
+      "t1": 90.0,
+      "t2": 210.0,
+      "weighted_recall": 0.8421052631578947,
+      "alerts": 135,
+      "alerts_l2": 25,
+      "max_l2_per_winter": 15
+    }
+  ]
+}
