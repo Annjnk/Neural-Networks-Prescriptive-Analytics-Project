@@ -21,3 +21,7 @@ outputs/audit_network/wide_daily_eligible.csv
 # macOS
 .DS_Store
 *.egg-info/
+
+# Local report draft and Word lock files: never committed
+report.docx
+~$*.docx
