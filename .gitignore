@@ -25,3 +25,6 @@ outputs/audit_network/wide_daily_eligible.csv
 # Local report draft and Word lock files: never committed
 report.docx
 ~$*.docx
+
+# Editor settings stay local
+.vscode/

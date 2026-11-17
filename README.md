@@ -1,88 +1,87 @@
-# Ulaanbaatar winter PM2.5: forecasting and monitoring-network design
+# Ulaanbaatar winter PM2.5: day-ahead warnings, the coal-ban effect and a leaner monitoring network
 
-BSHDS4 Neural Networks & Prescriptive Analytics project, National College of Ireland.
+BSHDS4 Neural Networks & Prescriptive Analytics, National College of Ireland.
+How can neural-network forecasting and optimisation support action against Ulaanbaatar's winter PM2.5?
+The project forecasts next-day PM2.5 at the US Embassy monitor and turns it into a fatigue-aware warning policy,
+estimates what the 15 May 2019 raw-coal ban achieved once weather is removed, and uses a genetic algorithm to decide
+how few stations of the new official monitoring network are needed.
 
-Two parts, each on the data that suits it:
+## Results (scored once on the sealed test data)
 
-| Part | Question | Data | Train | Validation | Test (sealed) |
-|---|---|---|---|---|---|
-| **Predictive** | How well can a neural network forecast tomorrow's mean PM2.5? | US Embassy monitor, OpenAQ location 8160, hourly | winters 2019/20–2022/23 | 2023/24 | 2024/25 |
-| **Prescriptive** | Which k of the new official stations should a reduced network keep? | agaar.gov.mn (NAMEM) via the data-mn archive, 22 UB stations, daily | Oct–Dec 2025 | Jan 2026 | Feb–Mar 2026 |
+| | Hypothesis | Verdict | Key number |
+|---|---|---|---|
+| H1 | The selected neural network (MLP) beats persistence | **Supported** | skill +0.189; MAE −6.9 µg/m³ (95% CI −10.7 to −3.3) |
+| H2 | Weather features improve the neural network | **Supported** (small) | MLP MAE −0.52 µg/m³ with weather (ridge +0.88, boosting −0.90, LSTM +8.54) |
+| H3 | GA station subsets beat random, highest-mean, spatial spread and match greedy | Not supported | GA wins at 5 of 10 network sizes |
+| H4 | The GA finds the exhaustive optimum (within 2%) | **Supported** | 10 of 10 network sizes (validation) |
+| H5 | The fatigue-aware policy catches more unhealthy days per alert | Not supported | 0.36 vs 0.36 at a matched alert budget |
+| H6 | Weather-adjusted winter PM2.5 fell after the ban | Inconclusive | placebo +31.4% (rule ±15%); pooled effect −25.2% (−28.9 to −15.0) |
 
-The forecasting core starts after the raw-coal ban of 15 May 2019; station 8160's pre-ban
-winters (Nov 2016–Jun 2019) are used only for the optional sensitivity experiment, H6 (weather-adjusted coal-ban estimate, notebook 07).
-All dates and rules are in `configs/study_config.yaml`.
+Sources: `outputs/results/test_summary.json` and `ban_effect.json`. Test winter 2024/25 (forecasting, warnings);
+test months Feb–Mar 2026 (network).
 
-## Setup (macOS)
+## Repository map
 
-Uses the existing conda environment `neural` (Python 3.12, Apple silicon; PyTorch uses `mps`).
+```
+configs/study_config.yaml       every date, threshold, grid and rule (frozen)
+src/uaq/                        all logic; notebooks only call it
+notebooks/                      six notebooks, run in order 1 → 6
+tests/                          offline pytest suite
+outputs/results/                validation and test results, test-run log
+outputs/audit_forecast|network/ audit reports and figures
+docs/data_source_register.csv   sources, licences, attribution
+data/raw/                       downloads (git-ignored, never committed)
+dev/                            synthetic-data generator for dry runs
+```
+
+| Notebook | Contents |
+|---|---|
+| `1_data_preparation` | Forecasting data audit (8160), network data audit (agaar), ERA5 weather and the feature table |
+| `2_forecasting_models` | Baselines, ridge, boosting, MLP and LSTM selected on two rolling validation folds; weather ablation |
+| `3_warning_policy` | Two-level warning policy with fatigue rule and alert budgets, chosen on validation |
+| `4_coal_ban_effect` | Weather-normalised counterfactual (random forest, linear and dummy-regression cross-checks), placebo |
+| `5_network_design_ga` | GA vs exhaustive, greedy, random, highest-mean and spatial-spread station subsets |
+| `6_final_test_results` | The single test run: H1–H5 verdicts, test-winter figures, network test months |
+
+| Old numbers | 01, 02, 04 | 05, 06 | 08 | 07 | 03 | 09 |
+|---|---|---|---|---|---|---|
+| Now | 1_data_preparation | 2_forecasting_models | 3 | 4 | 5 | 6 |
+
+Comments in `src/` and `configs/` use the old numbers and were left unchanged so the hashes in
+`outputs/results/test_run_log.json` still match.
+
+## Reproduce (macOS)
 
 ```bash
-conda activate neural
-pip install -r requirements.txt
-pip install -e .                   # makes `uaq` importable from notebooks and scripts
-pytest -q                          # 19 tests
-```
-
-In VS Code the folder is preset to the `neural` interpreter (`.vscode/settings.json`); pick
-`neural` as the kernel when you open a notebook. Or run `jupyter lab` from the activated terminal.
-
-## Data (not committed; see docs/data_source_register.csv)
-
-```
-data/raw/
-├── pm25/openaq/8160/      OpenAQ archive for the US Embassy station (forecasting)
-├── agaar/                 copy of data-mn tools/sources/agaar/raw/ (network design)
-│   ├── agaar-stations.csv
-│   └── daily/agaar-daily-YYYY-MM.csv
-└── nso/                   optional NSO monthly tables (cross-check)
-```
-
-```bash
-# OpenAQ, station 8160 (brew install awscli first)
+conda create -n neural python=3.12 && conda activate neural
+pip install -r requirements.txt && pip install -e . && pytest -q
+brew install awscli    # OpenAQ station 8160
 aws s3 cp --no-sign-request --region us-east-1 \
   s3://openaq-data-archive/records/csv.gz/locationid=8160/ data/raw/pm25/openaq/8160/ --recursive
-
-# agaar.gov.mn archive (clone OUTSIDE this repo, then copy)
-git clone --depth 1 https://github.com/American-University-of-Mongolia/data-mn ../data-mn
+git clone --depth 1 https://github.com/American-University-of-Mongolia/data-mn ../data-mn   # agaar archive
 mkdir -p data/raw/agaar && cp -R ../data-mn/tools/sources/agaar/raw/ data/raw/agaar/
+python -m uaq.weather  # hourly ERA5 from Open-Meteo (notebook 1 also downloads it if missing)
 ```
 
-Dry run without OpenAQ data: `python scripts/make_synthetic_data.py` writes a FAKE station-8160
-file; delete `data/raw/pm25/_synthetic.csv` before the real run.
+Run the notebooks in order 1 → 5. Notebook 6 refuses to run again: the test run is final and logged.
 
-**Known data gap:** AirNow filled station 8160's winter 2022/23 with `-999` (missing), and winter
-2020/21 is only 54% complete, so only two training winters pass the 75% rule. See the forecasting audit.
+## Integrity
 
-## Notebooks (run in order)
-
-| Notebook | What it does |
-|---|---|
-| `01_forecast_data_audit.ipynb` | Loads 8160, hourly → daily, coverage per winter, coal-ban shift, daily cycle, event threshold, baseline scores |
-| `02_network_data_audit.ipynb` | Loads and cleans agaar data, coverage per split, eligible stations, map, correlation, odd-station check, threshold |
-| `03_network_selection.ipynb` | GA vs exhaustive, greedy, highest-mean, spatial spread and random at every k; convergence; λ sensitivity; sealed test cell |
-
-Notebooks only call code in `src/uaq/`, so the same steps also run from the command line:
-`python -m uaq.audit_forecast` and `python -m uaq.audit_network`.
-
-## Code
-
-```
-configs/study_config.yaml   every date, threshold and rule
-src/uaq/io.py               OpenAQ loader (time zones, duplicates, flags)
-src/uaq/daily.py            hourly → daily with the 18-of-24-hours rule
-src/uaq/periods.py          season years, splits, rolling folds
-src/uaq/thresholds.py       event-threshold rule (training data only)
-src/uaq/baselines.py        persistence, 3-day mean, climatology
-src/uaq/metrics.py          MAE, RMSE, R², event precision/recall
-src/uaq/audit_forecast.py   forecasting audit
-src/uaq/agaar.py            agaar loader + cleaning rules
-src/uaq/audit_network.py    network audit
-src/uaq/network.py          fitness function, GA, greedy, exhaustive, comparators
-tests/                      pytest suite
-```
+- Chronological splits: train winters 2019/20–2022/23, validation 2023/24 (two rolling folds), test 2024/25;
+  every rule was fixed in the config before modelling, on availability, never on scores.
+- The test data were sealed and scored once, at tag `test-run`, from code frozen at tag `pre-test-v2`; the run checks
+  that no frozen file changed and logs SHA-256 hashes (`outputs/results/test_run_log.json`).
+- Disclosed process notes: (1) an early data-audit figure showed the 2024/25 smog-season mean; it was corrected and
+  no modelling choice used it; (2) the warning policy was revised on validation before the test (advisories had no
+  budget; tags `pre-test` → `pre-test-v2`).
 
 ## Data sources and licences
 
-See `docs/data_source_register.csv`. OpenAQ 8160 is US public domain (AirNow). The agaar data
-come from NAMEM's portal via the data-mn repository (MIT); record the data-mn commit id you copied.
+| Source | Used for | Licence / terms |
+|---|---|---|
+| OpenAQ location 8160 (AirNow, US Diplomatic Post) | forecasting, warnings, coal ban | US Public Domain |
+| agaar.gov.mn (NAMEM) via the data-mn archive | network design | no published data terms: academic use with attribution, not redistributed (repo code MIT) |
+| ERA5 via Open-Meteo | weather features | attribution: Open-Meteo (Zippenfenig, 2023); ERA5, Copernicus Climate Change Service |
+| NSO Mongolia monthly tables | optional cross-check | CC BY 4.0 |
+
+Details and attribution text: `docs/data_source_register.csv`.
