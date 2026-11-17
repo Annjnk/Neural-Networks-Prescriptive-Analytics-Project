@@ -7,7 +7,7 @@ days), the next day is downgraded to level 1. A missing forecast gives level 0.
 The policy (input forecast, t1, t2) is chosen on the two validation winters only, under per-winter budgets for
 level-2 days and for all alert days, by severity-weighted recall: a high day (observed > high) earns 1 if alerted at any level; a very-high day
 (observed > the training 90th percentile) earns 2 at level 2, 1 at level 1. Ties go to fewer alerts.
-The test winter is scored only by evaluate_on_test(), once, on the single test run (notebook 09), after the tag pre-test-v2 (CLAUDE.md rule 1).
+The test winter is scored only by evaluate_on_test(), once, on the single test run (notebook 09), after the tag pre-test-v2 (project rule 1: test seal).
 """
 from __future__ import annotations
 

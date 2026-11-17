@@ -103,7 +103,7 @@ def plot_coverage(cov: pd.DataFrame, thr: float, ax=None):
 
 def plot_season_means(daily: pd.DataFrame, cfg: dict, ax=None):
     """Mean smog-season PM2.5 per season, for seasons that end on or before the validation end only:
-    test-season PM2.5 is never plotted (CLAUDE.md hard rule 1)."""
+    test-season PM2.5 is never plotted (project rule 1: test seal)."""
     val_end = pd.Timestamp(cfg["forecast"]["periods"]["split"]["val"]["end"])
     start_month = cfg.get("season_start_month", 7)
     d = daily[daily["valid"] & in_months(daily["date"], cfg["smog_months"]).values & (daily["date"] <= val_end)].copy()

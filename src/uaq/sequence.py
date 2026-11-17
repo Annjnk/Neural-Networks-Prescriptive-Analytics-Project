@@ -1,6 +1,6 @@
 """LSTM forecasts on windows of consecutive days (notebook 06).
 
-Same protocol as uaq.models (CLAUDE.md, hard rules 2-6): fit windows have targets from core.start to the
+Same protocol as uaq.models (project rules 2-6): fit windows have targets from core.start to the
 fold's train end, all months; score windows have smog-season targets in the fold's validation window; test
 windows are never returned, except by fit_final_and_predict_lstm(), which runs once, on the single test run (notebook 09), after the tag pre-test-v2.
 A window ends on issue day D (its target is D+1) and comes from uaq.features.make_sequences, so it never
@@ -231,7 +231,7 @@ def compare_common_days(frame: pd.DataFrame, preds: dict, cfg: dict, threshold: 
 
 def fit_final_and_predict_lstm(frame, cols, history_days, factory, cfg) -> pd.DataFrame:
     """Fit on windows with core.start <= target_date <= validation end and predict the test split.
-    Runs ONCE, on the single test run (notebook 09), after the tag pre-test-v2 (CLAUDE.md hard rule 1). Test-split targets are never read: they are replaced by
+    Runs ONCE, on the single test run (notebook 09), after the tag pre-test-v2 (project rule 1: test seal). Test-split targets are never read: they are replaced by
     a placeholder only so make_sequences keeps those windows. Returns target_date, smog, pred."""
     p = cfg["forecast"]["periods"]
     f = frame.copy()

@@ -7,7 +7,7 @@ log1p(daily PM2.5) on weather and calendar inputs is trained on PRE-ban days onl
 
 Caveat: this is weather-adjusted, not causal. Population, fuel briquettes, COVID and warmer winters also changed.
 
-Seal (CLAUDE.md rule 1): no date after ban_effect.end (the 2024/25 test winter) is ever used; every public
+Seal (project rule 1: test seal): no date after ban_effect.end (the 2024/25 test winter) is ever used; every public
 function checks it. PM2.5 is never imputed: days without a valid daily mean are left out.
 
 Back-transformation: log1p predictions are converted to means with Duan's smearing factor, computed from

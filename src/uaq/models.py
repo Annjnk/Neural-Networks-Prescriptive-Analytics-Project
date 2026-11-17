@@ -1,6 +1,6 @@
 """Next-day PM2.5 forecasting models and the rolling-fold selection protocol (notebook 05).
 
-Protocol (CLAUDE.md, hard rules 2-6):
+Protocol (project rules 2-6):
   - fit rows: core.start <= target_date <= fold train_end, every month (forecast.models.fit_on);
   - score rows: the fold's validation window, smog-season targets only;
   - select on the mean MAE of the rolling folds; the test split is never fitted, scored or returned,
@@ -303,7 +303,7 @@ def predictions(frame: pd.DataFrame, cols: list[str], factory, cfg: dict) -> pd.
 
 def fit_final_and_predict(frame: pd.DataFrame, cols: list[str], factory, cfg: dict) -> pd.DataFrame:
     """Fit on core.start <= target_date <= validation end, predict the test split.
-    Runs ONCE, on the single test run (notebook 09), after the tag pre-test-v2 (CLAUDE.md hard rule 1); returns target_date, smog, pred only."""
+    Runs ONCE, on the single test run (notebook 09), after the tag pre-test-v2 (project rule 1: test seal); returns target_date, smog, pred only."""
     p = cfg["forecast"]["periods"]
     cc = complete_rows(frame, cols)
     fit = cc[(cc["target_date"] >= pd.Timestamp(p["core"]["start"]))
