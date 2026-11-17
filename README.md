@@ -20,6 +20,73 @@ how few stations of the new official monitoring network are needed.
 Sources: `outputs/results/test_summary.json` and `ban_effect.json`. Test winter 2024/25 (forecasting, warnings);
 test months Feb–Mar 2026 (network).
 
+## Results in detail
+
+Figures are copied unchanged from the notebooks' saved outputs (`docs/figures/`).
+
+### 1 · Next-day forecasts on the test winter 2024/25 (H1, H2)
+
+![Test winter 2024/25: observed PM2.5 vs persistence, MLP and LSTM forecasts](docs/figures/test_forecasts.png)
+
+| Model | Days | MAE (µg/m³) | Skill vs persistence | Unhealthy days caught | Worst-10% bias (µg/m³) |
+|---|---|---|---|---|---|
+| Persistence (tomorrow = today) | 107 | 36.3 | +0.00 | 4 of 10 | −37 |
+| Climatology | 107 | 46.1 | −0.27 | 0 of 10 | −63 |
+| Ridge (weather) | 107 | 30.2 | +0.17 | 2 of 10 | −73 |
+| Gradient boosting (weather) | 107 | 31.4 | +0.14 | 3 of 10 | −64 |
+| **MLP (weather), selected** | 107 | **29.5** | **+0.19** | 2 of 10 | −65 |
+| LSTM (weather) | 104 | 37.9 | −0.04 | 0 of 10 | −94 |
+
+The MLP chosen on validation cut persistence's error by 19%, with ridge and boosting close behind; the LSTM did not
+beat persistence. Every model underpredicts the worst days, so few of the 10 unhealthy days (> 170.8 µg/m³) are
+forecast above the line: persistence catches the most.
+
+### 2 · How the models were chosen (validation, two rolling folds)
+
+![Validation smog-season MAE by model, with persistence as reference](docs/figures/validation_mae_by_model.png)
+
+On validation, weather features helped every model family, and boosting, MLP and ridge finished within
+0.7 µg/m³ of each other; the MLP was carried forward as the selected neural network.
+
+### 3 · Day-ahead warnings on the test winter (H5)
+
+![Test winter 2024/25: observed PM2.5 band vs alert level for each rule](docs/figures/test_warning_calendar.png)
+
+| Rule (same forecast, 111 test days) | Alerts | Unhealthy days caught | Caught per alert | Longest warning run |
+|---|---|---|---|---|
+| Fatigue-aware policy (advisory 170 / warning 210) | 11 (8 advisories, 3 warnings) | 4 of 11 | 0.36 | 2 days |
+| Single threshold, same alert budget | 11 | 4 of 11 | 0.36 | 3 days |
+| Official 24-h line (37.5 µg/m³) | 98 | 10 of 11 | 0.10 | 44 days |
+
+The policy catches exactly as many unhealthy days per alert as a single threshold with the same budget, so H5 is not
+supported; it does spread its alerts over two levels and never warns more than two days in a row. The official line
+alerts on 98 of 111 days, which is why a single official-line alert fails in Ulaanbaatar.
+
+### 4 · What the 2019 raw-coal ban achieved, weather-adjusted (H6)
+
+![Smog-season PM2.5: observed vs weather-adjusted no-ban counterfactual per winter](docs/figures/coal_ban_counterfactual.png)
+
+| Winter | Observed (µg/m³) | Weather-adjusted no-ban (µg/m³) | Effect (95% interval) |
+|---|---|---|---|
+| 2019/20 | 121 | 165 | −27% (−31% to −16%) |
+| 2020/21 (COVID) | 101 | 146 | −31% (−35% to −22%) |
+| 2021/22 | 130 | 153 | −15% (−19% to −2%) |
+| 2023/24 | 112 | 161 | −31% (−34% to −22%) |
+| Pooled | 118 | 157 | −25% (−29% to −15%) |
+
+After the ban, winters were 15–31% cleaner than their weather predicts. But the same model "finds" a +31% effect in
+2018/19, a winter with no ban (the placebo), so under the rule fixed in advance H6 is inconclusive. The estimate is
+weather-adjusted, not causal.
+
+### 5 · How few monitoring stations are needed (H3, H4)
+
+![Network design on the test months: fitness F by number of stations kept, per method](docs/figures/network_test_f_by_k.png)
+
+Lower F means the kept stations reconstruct the dropped ones better. The GA found the exhaustive optimum at every
+network size on validation (H4). On the test months its subsets beat random, highest-mean and spatial-spread choices
+at 5 of 10 sizes (k = 6, 7, 8, 10, 11; e.g. keeping 6 of 13 stations: F 0.367 vs 0.562 for a random median), tying
+greedy there; greedy is better at k = 3–5 and spatial spread at k = 9 and 12, so H3 is not supported.
+
 ## Repository map
 
 ```
